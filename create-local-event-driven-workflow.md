@@ -218,7 +218,7 @@ spec:
       container:
         image: luboganchev/hellodevweek:latest
         command: ['dotnet', 'HelloDevWeek.dll']
-        args: ['{{inputs.parameters.company}}', '{{inputs.parameters.year}}']
+        args: ['{{inputs.parameters.event}}', '{{inputs.parameters.year}}']
 ```
 Apply and the last argo events object which will be needed:
 ```
