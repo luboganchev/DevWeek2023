@@ -160,7 +160,7 @@ spec:
       eventName: consume-messages
   triggers:
     - template:
-        name: simple-container-template
+        name: hello-dev-week-template
         argoWorkflow:
           operation: submit
           source:
@@ -175,8 +175,10 @@ spec:
                 serviceAccountName: argo-kafka-local-sa
                 arguments:
                   parameters:
-                    - name: message
-                      value: 'hello world from sensor'
+                    - name: event
+                      value: 'some event'
+                    - name: year
+                      value: '2000'
                 workflowTemplateRef:
                   name: workflow-template-hello-dev-week
           parameters:
@@ -187,7 +189,7 @@ spec:
             - src:
                 dependencyName: new-kafka-message
                 dataKey: body.year
-              dest: spec.arguments.parameters.0.value
+              dest: spec.arguments.parameters.1.value
 ```
 Afterward, execute this command in order to create the object in the cluster:
 ``` 
