@@ -222,7 +222,7 @@ spec:
 ```
 Apply and the last argo events object which will be needed:
 ```
-kubectl apply -f workflow-template-simple-container.yaml
+kubectl apply -f workflow-template-hello-dev-week.yaml
 ``` 
 ## Test and verify
 To comprehensively test and verify that everything is functioning as expected, follow these steps:
