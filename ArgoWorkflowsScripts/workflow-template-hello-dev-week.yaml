@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-template-hello-dev-week
+  namespace: argo-kafka-local
+spec:
+  entrypoint: hello-dev-week
+  serviceAccountName: argo-kafka-local-sa
+  arguments:
+    parameters:
+      - name: event
+        value: a
+      - name: year
+        value: b
+  templates:
+    - name: hello-dev-week
+      inputs:
+        parameters:
+          - name: event
+          - name: year
+      container:
+        image: luboganchev/devweek2023:latest
+        command: ['dotnet', 'DevWeek2023.dll']
+        args: ['{{inputs.parameters.event}}', '{{inputs.parameters.year}}']

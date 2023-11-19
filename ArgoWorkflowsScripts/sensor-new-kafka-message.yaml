@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: sensor-new-kafka-message
+  namespace: argo-kafka-local
+spec:
+  eventBusName: event-bus-default
+  template:
+    serviceAccountName: argo-kafka-local-sa
+  dependencies:
+    - name: new-kafka-message
+      eventSourceName: event-source-kafka
+      eventName: consume-messages
+  triggers:
+    - template:
+        name: hello-dev-week-template
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: new-kafka-message-received-
+                namespace: argo-kafka-local
+              spec:
+                entrypoint: hello-dev-week
+                serviceAccountName: argo-kafka-local-sa
+                arguments:
+                  parameters:
+                    - name: event
+                      value: 'some event'
+                    - name: year
+                      value: '2000'
+                workflowTemplateRef:
+                  name: workflow-template-hello-dev-week
+          parameters:
+            - src:
+                dependencyName: new-kafka-message
+                dataKey: body.event
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: new-kafka-message
+                dataKey: body.year
+              dest: spec.arguments.parameters.1.value

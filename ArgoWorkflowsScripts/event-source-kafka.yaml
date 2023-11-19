@@ -1,0 +1,33 @@
+# This sets up the event source that subscribes to specific Kafka topic and writes
+# them to the eventbus
+---
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: event-source-kafka
+  namespace: argo-kafka-local
+spec:
+  replicas: 1
+  eventBusName: event-bus-default
+  template:
+    serviceAccountName: argo-kafka-local-sa
+    container:
+      resources:
+        requests:
+          memory: '64Mi'
+          cpu: '100m'
+        limits:
+          memory: '128Mi'
+          cpu: '400m'
+  kafka:
+    consume-messages:
+      url: my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
+      topic: my-topic
+      jsonBody: true
+      partition: '0'
+      connectionBackoff:
+        duration: 10s
+        steps: 5
+        factor: 2
+        jitter: 0.2
+

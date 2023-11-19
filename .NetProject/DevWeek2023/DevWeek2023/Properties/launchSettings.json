@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DevWeek2023": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

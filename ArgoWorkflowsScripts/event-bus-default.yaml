@@ -1,0 +1,14 @@
+# This sets up the eventbus for argo events. You typically have one per environment per namespace.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: EventBus
+metadata:
+  name: event-bus-default
+  namespace: argo-kafka-local
+spec:
+  jetstream:
+    version: 2.8.1
+    persistence:
+      accessMode: ReadWriteOnce
+      volumeSize: 1G
+
