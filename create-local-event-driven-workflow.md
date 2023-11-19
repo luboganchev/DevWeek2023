@@ -216,8 +216,8 @@ spec:
           - name: event
           - name: year
       container:
-        image: luboganchev/hellodevweek:latest
-        command: ['dotnet', 'HelloDevWeek.dll']
+        image: luboganchev/devweek2023:latest
+        command: ['dotnet', 'DevWeek2023.dll']
         args: ['{{inputs.parameters.event}}', '{{inputs.parameters.year}}']
 ```
 Apply and the last argo events object which will be needed:
