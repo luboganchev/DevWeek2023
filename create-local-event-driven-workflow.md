@@ -242,7 +242,7 @@ kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.23.0-kaf
 ``` 
 kubectl -n kafka run kafka-consumer -ti --image=quay.io/strimzi/kafka:0.23.0-kafka-2.8.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
 ```
-After the Kafka producer is operational, paste a test **JSON** message (since we've configured the event source to exclusively work with **JSON**). To inspect the logs within the Argo Workflow UI, follow these steps:
+After the Kafka producer is operational, paste this test `{"event": "DevWeek", "year": 2023}` **JSON** message (since we've configured the event source to exclusively work with **JSON**). To inspect the logs within the Argo Workflow UI, follow these steps:
 1. Start by checking the Event Source logs. You should expect to find the log entry: **"Succeeded to publish an event."**
 2. Next, move on to the Sensor and verify if there is a log entry stating: **"Successfully processed trigger 'simple-container-template'."**
 3. Lastly, go to the Workflows section and confirm that a new workflow has been triggered with the name: **"new-kafka-message-received-{generatedId}."**
