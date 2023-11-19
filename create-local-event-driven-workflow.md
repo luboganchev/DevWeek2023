@@ -21,7 +21,7 @@ So, let's get started with the following steps:
 ```
 kubectl create ns argo-kafka-local
 ```
-2. Create a new physical folder called argo-kafka-local which will contain our local .yaml files.
+2. Create a new physical folder called **argo-kafka-local** which will contain our local .yaml files.
 3. Before we dive into crafting the different Argo objects, let's set up RBAC (Role-Based Access Control). This entails creating a Service Account, Role, and RoleBinding. To get started, create a file named **argo-kafka-local-rbac.yaml** and insert the following content:
 
 ```yaml
@@ -65,11 +65,12 @@ kubectl apply -f workflow-template-simple-container.yaml
 ``` 
 ## Test and verify
 To comprehensively test and verify that everything is functioning as expected, follow these steps:
-1. Open your Argo Workflow UI (you can find instructions on how to set up the [**Argo Workflow UI**](https://github.com/luboganchev/DevWeek2023/blob/main/configure-argo-workflows-gui.md)). 
+1. Open your **Argo Workflow UI** (you can find instructions on how to set up the [**Argo Workflow UI**](https://github.com/luboganchev/DevWeek2023/blob/main/configure-argo-workflows-gui.md)). 
 2. Launch two new terminal tabs.
 3. In the first tab, create a **Kafka producer**.
 4. In the second tab, set up a **Kafka consumer**.
 5. Execute the following commands, and try entering a **JSON** message in the producer tab. You should observe the same exact message appearing in the consumer tab.
+
 **Kafka producer**:
 ```
 kubectl -n kafka run kafka-producer -ti --image=quay.io/strimzi/kafka:0.23.0-kafka-2.8.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
