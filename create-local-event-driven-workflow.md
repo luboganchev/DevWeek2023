@@ -2,7 +2,7 @@
  
 The primary aim of this article is to simplify the setup process of a local Kafka cluster and a local Argo Events ecosystem. This will prove immensely beneficial when conducting local testing, sparing you the need to enact changes and endure the anticipation of a response from the build server.
 ## Kafka cluster
-Among the most straightforward methods to rapidly establish a local Kafka cluster is by adhering to the guidance provided in this informative article at How to set up Kafka on Kubernetes with Strimzi in 5 minutes | b-nova
+Among the most straightforward methods to rapidly establish a local Kafka cluster is by adhering to the guidance provided in this informative article at [How to set up Kafka on Kubernetes with Strimzi in 5 minutes | b-nova](https://b-nova.com/en/home/content/heres-how-you-can-setup-kafka-with-strimzi-on-kubernetes-in-only-five-minutes/)
 In a nutshell, to get started, you will be required to execute the following set of commands:
 ```
 kubectl create namespace kafka
