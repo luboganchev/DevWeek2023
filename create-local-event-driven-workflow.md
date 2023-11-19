@@ -25,7 +25,60 @@ kubectl create ns argo-kafka-local
 3. Before we dive into crafting the different Argo objects, let's set up RBAC (Role-Based Access Control). This entails creating a Service Account, Role, and RoleBinding. To get started, create a file named **argo-kafka-local-rbac.yaml** and insert the following content:
 
 ```yaml
-apiVersion: v1kind: ServiceAccountmetadata:  name: argo-kafka-local-sa  namespace: argo-kafka-local---apiVersion: rbac.authorization.k8s.io/v1kind: Rolemetadata:  name: argo-kafka-local-role  namespace: argo-kafka-localrules:  - apiGroups:      - ''    resources:      - pods    verbs:      - get      - watch      - patch  - apiGroups:      - ''    resources:      - pods/log    verbs:      - get      - watch  - apiGroups:      - argoproj.io    resources:      - workflows      - workflowtemplates      - workfloweventbindings      - clusterworkflowtemplates      - cronworkflows      - sensors      - workflowtaskresults      - eventsources    verbs: - '*' --- apiVersion: rbac.authorization.k8s.io/v1 kind: RoleBinding metadata: name: argo-kafka-local-role-binding namespace: argo-kafka-local roleRef: apiGroup: rbac.authorization.k8s.io kind: Role name: argo-kafka-local-role subjects: - kind: ServiceAccount name: argo-kafka-local-sa namespace: argo-kafka-local
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-kafka-local-sa
+  namespace: argo-kafka-local
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-kafka-local-role
+  namespace: argo-kafka-local
+rules:
+  - apiGroups:
+      - ''
+    resources:
+      - pods
+    verbs:
+      - get
+      - watch
+      - patch
+  - apiGroups:
+      - ''
+    resources:
+      - pods/log
+    verbs:
+      - get
+      - watch
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+      - workflowtemplates
+      - workfloweventbindings
+      - clusterworkflowtemplates
+      - cronworkflows
+      - sensors
+      - workflowtaskresults
+      - eventsources
+    verbs:
+      - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-kafka-local-role-binding
+  namespace: argo-kafka-local
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-kafka-local-role
+subjects:
+  - kind: ServiceAccount
+    name: argo-kafka-local-sa
+    namespace: argo-kafka-local
 ```
 To apply the RBAC file in your Kubernetes environment, execute the following command (*make sure you've navigated to the already created folder mentioned above argo-kafka-local*):
 ``` 
@@ -33,7 +86,19 @@ kubectl apply -f argo-kafka-local-rbac.yaml
 ```
 4. Now that our RBAC setup is complete, we can proceed to create each of the Argo Event-specific objects one by one. Let's begin with the Event Bus. Please create a new file named **event-bus-default.yaml** and include the following content:
 ```
-# This sets up the eventbus for argo events. You typically have one per environment per namespace.---apiVersion: argoproj.io/v1alpha1kind: EventBusmetadata:  name: event-bus-default  namespace: argo-kafka-localspec:  jetstream:    version: 2.8.1    persistence: accessMode: ReadWriteOnce volumeSize: 1G
+# This sets up the eventbus for argo events. You typically have one per environment per namespace.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: EventBus
+metadata:
+  name: event-bus-default
+  namespace: argo-kafka-local
+spec:
+  jetstream:
+    version: 2.8.1
+    persistence:
+      accessMode: ReadWriteOnce
+      volumeSize: 1G
 ```
 Apply our newly created event bus to the k8s cluster by running the following command: 
 ```
@@ -41,7 +106,38 @@ kubectl apply -f event-bus-default.yaml
 ```
 5. Next, let's create an Event Source responsible for subscribing to messages on a specific Kafka topic. To achieve this, create a file named **event-source-kafka.yaml** and input the following content:
 ```
-apiVersion: argoproj.io/v1alpha1kind: EventSourcemetadata:  name: event-source-kafka  namespace: argo-kafka-localspec:  replicas: 1  eventBusName: event-bus-default  template:    serviceAccountName: argo-kafka-local-sa    container:      resources:        requests:          memory: '64Mi'          cpu: '100m'        limits:          memory: '128Mi'          cpu: '400m'  kafka:    kafka-broker:      url: my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092 topic: my-topic jsonBody: true partition: '0' connectionBackoff: duration: 10s steps: 5 factor: 2 jitter: 0.2
+# This sets up the event source that subscribes to specific Kafka topic and writes
+# them to the eventbus
+---
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: event-source-kafka
+  namespace: argo-kafka-local
+spec:
+  replicas: 1
+  eventBusName: event-bus-default
+  template:
+    serviceAccountName: argo-kafka-local-sa
+    container:
+      resources:
+        requests:
+          memory: '64Mi'
+          cpu: '100m'
+        limits:
+          memory: '128Mi'
+          cpu: '400m'
+  kafka:
+    consume-messages:
+      url: my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
+      topic: my-topic
+      jsonBody: true
+      partition: '0'
+      connectionBackoff:
+        duration: 10s
+        steps: 5
+        factor: 2
+        jitter: 0.2
 ```
 Apply the event source to the k8s cluster by running the following command 
 ``` 
@@ -49,15 +145,80 @@ kubectl apply -f event-source-kafka.yaml
 ``` 
 6. After setting up the Event Source, it's essential to create a Sensor. To accomplish this, create a file named **sensor-new-kafka-message.yaml** and copy/paste the following content:
 ```
-apiVersion: argoproj.io/v1alpha1kind: Sensormetadata:  name: sensor-new-kafka-message  namespace: argo-kafka-localspec:  eventBusName: event-bus-default  template:    serviceAccountName: argo-kafka-local-sa  dependencies:    - name: new-kakfa-message      eventSourceName: event-source-kafka      eventName: kafka-broker  triggers:    - template:        name: simple-container-template        argoWorkflow:          operation: submit          source:            resource:              apiVersion: argoproj.io/v1alpha1              kind: Workflow              metadata:                generateName: new-kafka-message-received-                namespace: argo-kafka-local              spec:                entrypoint: whalesay-template serviceAccountName: argo-kafka-local-sa arguments: parameters: - name: message value: 'hello world from sensor' workflowTemplateRef: name: workflow-template-simple-container parameters: - src: dependencyName: new-kakfa-message dataKey: body dest: spec.arguments.parameters.0.value
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: sensor-new-kafka-message
+  namespace: argo-kafka-local
+spec:
+  eventBusName: event-bus-default
+  template:
+    serviceAccountName: argo-kafka-local-sa
+  dependencies:
+    - name: new-kafka-message
+      eventSourceName: event-source-kafka
+      eventName: consume-messages
+  triggers:
+    - template:
+        name: simple-container-template
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: new-kafka-message-received-
+                namespace: argo-kafka-local
+              spec:
+                entrypoint: hello-dev-week
+                serviceAccountName: argo-kafka-local-sa
+                arguments:
+                  parameters:
+                    - name: message
+                      value: 'hello world from sensor'
+                workflowTemplateRef:
+                  name: workflow-template-hello-dev-week
+          parameters:
+            - src:
+                dependencyName: new-kafka-message
+                dataKey: body.event
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: new-kafka-message
+                dataKey: body.year
+              dest: spec.arguments.parameters.0.value
 ```
 Afterward, execute this command in order to create the object in the cluster:
 ``` 
 kubectl apply -f sensor-new-kafka-message.yaml
 ```
-7. To complete the puzzle, the final step involves creating the Workflow Template, which will be utilized by the Sensor to generate workflows for each received Kafka message. Create a file named **workflow-template-simple-container.yaml** and insert the following code snippet:
+7. To complete the puzzle, the final step involves creating the Workflow Template, which will be utilized by the Sensor to generate workflows for each received Kafka message. Create a file named **workflow-template-hello-dev-week.yaml** and insert the following code snippet:
 ```
-apiVersion: argoproj.io/v1alpha1kind: WorkflowTemplatemetadata:  name: workflow-template-simple-container  namespace: argo-kafka-localspec:  entrypoint: whalesay-template  serviceAccountName: argo-kafka-local-sa  arguments:    parameters:      - name: message        value: hello world  templates:    - name: whalesay-template      inputs: parameters: - name: message container: image: docker/whalesay command: [cowsay] args: ['{{inputs.parameters.message}}']
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-template-hello-dev-week
+  namespace: argo-kafka-local
+spec:
+  entrypoint: hello-dev-week
+  serviceAccountName: argo-kafka-local-sa
+  arguments:
+    parameters:
+      - name: event
+        value: a
+      - name: year
+        value: b
+  templates:
+    - name: hello-dev-week
+      inputs:
+        parameters:
+          - name: event
+          - name: year
+      container:
+        image: luboganchev/hellodevweek:latest
+        command: ['dotnet', 'HelloDevWeek.dll']
+        args: ['{{inputs.parameters.company}}', '{{inputs.parameters.year}}']
 ```
 Apply and the last argo events object which will be needed:
 ```
